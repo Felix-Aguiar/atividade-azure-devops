@@ -113,7 +113,7 @@ app.get('/tema', async (req, res) => {
     try {
         // ALUNOS: Usem a configuração dbConfig para conectar no banco e fazer o SELECT na tabela do tema escolhido!
         await sql.connect(dbConfig);
-        const result = await sql.query`SELECT * FROM NomeDaSuaTabela`; // ALTERAR AQUI!
+        const result = await sql.query`SELECT * FROM Times`;
         
         res.json(result.recordset);
     } catch (err) {
