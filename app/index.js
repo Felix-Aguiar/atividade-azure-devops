@@ -1,127 +1,229 @@
-const express = require('express');
-const appInsights = require('applicationinsights');
+// =====================================================
+// APPLICATION INSIGHTS
+// =====================================================
+// O monitoramento nunca deve impedir a aplicação de subir.
+try {
+    if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
+        const appInsights = require('applicationinsights');
 
-// Configuração do Application Insights
-if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
-    appInsights.setup(process.env.APPLICATIONINSIGHTS_CONNECTION_STRING)
-        .setAutoDependencyCorrelation(true)
-        .setAutoCollectRequests(true)
-        .setAutoCollectPerformance(true, true)
-        .setAutoCollectExceptions(true)
-        .setAutoCollectDependencies(true)
-        .setAutoCollectConsole(true)
-        .setUseDiskRetryCaching(true)
-        .start();
-    console.log("App Insights configurado.");
-} else {
-    console.log("App Insights connection string não encontrada.");
+        appInsights
+            .setup()
+            .setAutoCollectRequests(true)
+            .setAutoCollectPerformance(true, true)
+            .setAutoCollectExceptions(true)
+            .setAutoCollectDependencies(true)
+            .setAutoCollectConsole(true, false)
+            .start();
+
+        console.log('Application Insights configurado com sucesso.');
+    } else {
+        console.log('APPLICATIONINSIGHTS_CONNECTION_STRING não configurada.');
+    }
+} catch (err) {
+    console.error(
+        'Application Insights apresentou erro, mas a aplicação continuará:',
+        err.message
+    );
 }
 
+
+// =====================================================
+// DEPENDÊNCIAS
+// =====================================================
+
+const express = require('express');
 const sql = require('mssql');
+
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Configuração do Banco de Dados (Os alunos devem preencher as variáveis no Azure WebApp)
+
+// =====================================================
+// BANCO DE DADOS
+// =====================================================
+
 const dbConfig = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    server: process.env.DB_SERVER, // Ex: meuserver.database.windows.net
+    server: process.env.DB_SERVER,
     database: process.env.DB_NAME,
+
     options: {
-        encrypt: true, // Necessário para Azure SQL
+        encrypt: true,
         trustServerCertificate: false
-    }
+    },
+
+    connectionTimeout: 30000,
+    requestTimeout: 30000
 };
+
+
+// =====================================================
+// HEALTH CHECK
+// =====================================================
+
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        app: 'web-esportes-564154',
+        timestamp: new Date().toISOString()
+    });
+});
+
+
+// =====================================================
+// PÁGINA INICIAL
+// =====================================================
 
 app.get('/', (req, res) => {
     res.send(`
     <!DOCTYPE html>
     <html lang="pt-BR">
+
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>FIAP - Atividade DevOps</title>
+
+        <title>FIAP - Esportes & DevOps</title>
+
         <style>
+
             body {
                 background-color: #1a1a1a;
                 color: #ffffff;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
                 margin: 0;
+                height: 100vh;
+
                 display: flex;
-                flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                height: 100vh;
+
                 text-align: center;
             }
+
             .container {
                 background-color: #262626;
+
                 padding: 40px;
+
                 border-radius: 12px;
-                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
                 border-top: 5px solid #ED145B;
-                max-width: 600px;
+
+                box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+
+                max-width: 650px;
             }
+
             h1 {
                 color: #ED145B;
-                margin-top: 0;
             }
+
             p {
+                color: #cccccc;
                 font-size: 1.1em;
                 line-height: 1.5;
-                color: #cccccc;
             }
-            .btn {
-                display: inline-block;
-                margin-top: 20px;
-                padding: 12px 24px;
-                background-color: #ED145B;
-                color: #ffffff;
-                text-decoration: none;
-                border-radius: 6px;
-                font-weight: bold;
-                transition: background-color 0.3s;
-            }
-            .btn:hover {
-                background-color: #c0104a;
-            }
+
             .badge {
                 display: inline-block;
+
                 background-color: #4CAF50;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 4px;
-                font-size: 0.9em;
-                margin-bottom: 15px;
+
+                padding: 6px 12px;
+
+                border-radius: 5px;
+
+                font-weight: bold;
             }
+
+            .btn {
+                display: inline-block;
+
+                margin-top: 20px;
+
+                padding: 12px 24px;
+
+                background-color: #ED145B;
+                color: white;
+
+                text-decoration: none;
+
+                border-radius: 6px;
+
+                font-weight: bold;
+            }
+
         </style>
+
     </head>
+
     <body>
+
         <div class="container">
-            <div class="badge">Deploy Status: Sucesso! ✅</div>
-            <h1>Atividade DevOps & Cloud</h1>
-            <p>Parabéns! Sua aplicação Node.js foi implementada com sucesso no Azure Web App através da sua esteira CI/CD.</p>
-            <p>O App Insights já está monitorando sua aplicação.</p>
-            <a href="/tema" class="btn">🚀 Ver Dados do Banco</a>
+
+            <div class="badge">
+                Azure Deploy: Online
+            </div>
+
+            <h1>⚽ Esportes & Cloud</h1>
+
+            <p>
+                Aplicação Node.js integrada ao Azure SQL,
+                GitHub Actions e Application Insights.
+            </p>
+
+            <a href="/tema" class="btn">
+                Ver dados dos times
+            </a>
+
         </div>
+
     </body>
+
     </html>
     `);
 });
 
+
+// =====================================================
+// ROTA DO TEMA
+// =====================================================
+
 app.get('/tema', async (req, res) => {
+
     try {
-        // ALUNOS: Usem a configuração dbConfig para conectar no banco e fazer o SELECT na tabela do tema escolhido!
-        await sql.connect(dbConfig);
-        const result = await sql.query`SELECT * FROM Times`;
-        
-        res.json(result.recordset);
+
+        const pool = await sql.connect(dbConfig);
+
+        const result = await pool
+            .request()
+            .query('SELECT * FROM Times');
+
+        res.status(200).json(result.recordset);
+
     } catch (err) {
-        console.error("Erro ao conectar no banco:", err);
-        res.status(500).send("Erro ao buscar os dados: " + err.message);
+
+        console.error('Erro SQL:', err);
+
+        res.status(500).json({
+            erro: 'Não foi possível consultar o banco.',
+            detalhe: err.message
+        });
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server rodando na porta ${port}`);
+
+// =====================================================
+// START
+// =====================================================
+
+app.listen(port, '0.0.0.0', () => {
+
+    console.log('=================================');
+    console.log('Aplicação iniciada com sucesso');
+    console.log(`Porta: ${port}`);
+    console.log('=================================');
+
 });
